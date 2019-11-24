@@ -1,0 +1,38 @@
+public class surveyService{
+
+   Public Static Messaging.SingleEmailMessage createEmail (EmailTemplate Template, 
+                                                                id targetObject, 
+                                                                string toAddresses){
+        Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
+        mail.setWhatId(targetObject);
+        list <string> sendTo= new list<string>();
+        sendto.add(toAddresses);
+        mail.setToAddresses(sendto);
+        mail.setSubject(template.Subject);
+        mail.setHtmlBody(template.HtmlValue.replace(']]>',''));
+
+        mail.setSaveAsActivity(true);
+        return mail;
+    }
+    Public static EmailTemplate populateContactDetails(contact recored, EmailTemplate template){
+         
+         template.HtmlValue=template.HtmlValue.replace('{!Contact.FirstName}',recored.firstname);  
+         template.HtmlValue=template.HtmlValue.replace('{!Contact.Id}',recored.id);
+         
+       return template;  
+    }
+    Public Static map<string,EmailTemplate> populateSurveyTemplates (){
+        string surveyTemplatePrefix='Survey_';
+        map<string,EmailTemplate> templateMap= new map<string,EmailTemplate>();
+        for(EmailTemplate emailTemplate:  [ Select Id,developername ,Subject,HtmlValue,Body
+                                            From EmailTemplate 
+                                            Where developername LIKE :surveyTemplatePrefix+'%' ]){
+            if(emailTemplate.developername == surveyTemplatePrefix ){
+                templateMap.put(emailTemplate.developername,emailTemplate);
+            }
+            
+        }
+
+        return templateMap;
+    }
+}

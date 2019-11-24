@@ -1,0 +1,51 @@
+/*-----------------------------------------------------------------------------
+    Created By: Moustafa Ishak
+    Created On: 24/11/2019
+    Description: This batch calss will be schadualed on daily basis to send Emails to related contacts 
+    Test Class : NA
+    -------------------------------------------------------------------------------
+    Date        Release         ModifiedBy              Purpose
+    -------------------------------------------------------------------------------*/
+global class sendSurveyEmails implements 
+    Database.Batchable<sObject>, Database.Stateful {
+    
+    global Integer recordsProcessed = 0;
+    global Database.QueryLocator start(Database.BatchableContext bc) {
+        return Database.getQueryLocator(
+            'SELECT ID, FirstName, LastName, AccountId, language__c, survey_date__c, Email '+ 
+            'FROM Contact ' + 
+            'Where survey_date__c <= Today()'
+        );
+    }
+    global void execute(Database.BatchableContext bc, List<Contact> ContactList){
+        // process each batch of records
+        List<Contact> contactsToUpdate = new List<Contact>();
+        //check for the limits
+        if(Limits.getLimitEmailInvocations() < (Limits.getEmailInvocations() +ContactList.size())){
+            list<Messaging.SingleEmailMessage> mails = new list<Messaging.SingleEmailMessage>();
+            map<string,EmailTemplate> templeteMap = surveyService.populateSurveyTemplates();
+            
+            for (Contact recored :ContactList) {
+                //send email
+                // add contact to list to be updated
+                mails.add(surveyService.createEmail(surveyService.populateContactDetails(recored,templeteMap.get('Survey_'+recored.Language__c)),
+                                  recored.id,
+                                  recored.Email));
+                recored.survey_date__c=NULL;
+                contactsToUpdate.add(recored);
+                // increment the instance member counter
+                recordsProcessed = recordsProcessed + 1;
+            }
+            Messaging.sendEmail(mails,true);
+            database.update (contactsToUpdate,false);
+        }
+        else{
+            //through limit hitting exception 
+        } 
+    }    
+    global void finish(Database.BatchableContext bc){
+       // send status report 
+       //schadule next batch
+       
+    }    
+}
