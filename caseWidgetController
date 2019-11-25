@@ -1,0 +1,79 @@
+Public class caseWidgetController{
+    
+    private class wrapper{
+        
+        public string costPerCalnedarMonth {get;set;}
+        public string otherCountryAtmFee   {get;set;}
+        public string cardReplacementCost  {get;set;}
+        
+        public wrapper (string costPerCalnedarMonth,
+                        string otherCountryAtmFee,
+                        string cardReplacementCost){
+                        
+                         this.costPerCalnedarMonth=costPerCalnedarMonth;
+                         this.otherCountryAtmFee=otherCountryAtmFee;
+                         this.cardReplacementCost=cardReplacementCost;
+                        }
+    }
+    
+    @auraEnabled
+    public static string populateCaseWidget(id recoredId){
+    
+         //query case and 3 custom settings
+         case recored= new case();
+         try{
+             recored = queryCaseById(recoredId);
+         }
+         catch(exception e){
+             // handel exception
+             return NUll;
+         }
+         
+         if(recored.contact.product__c <>NULL && 
+           recored.contact.home_country__c <>NULL){
+           
+           wrapper caseWidgetWrapper = new wrapper(queryCostPerMonth(recored.contact.product__c,recored.contact.home_country__c),
+                                                   queryOtherCountryAtmFee(recored.contact.product__c,recored.contact.home_country__c),
+                                                   queryCardReplacementCost(recored.contact.product__c,recored.contact.home_country__c)
+                                                   );
+         
+         return   JSON.serialize(caseWidgetWrapper);
+         }
+         // create wrapper instance
+         //retrun it 
+         
+         return NUll;
+    }
+   
+    public static case queryCaseById(id recoredId){
+        
+        return [select id, contactid, contact.product__c, contact.home_country__c
+                from case
+                where id =:recoredId
+                limit 1];
+    }
+    public static string queryCostPerMonth(string product, string country){
+        
+        return [select Value__c
+                from   CostPerMonth__mdt
+                where  Country__c=:country 
+                and    Product__c=:product
+                limit  1].value__c;
+    }
+    public static string queryCardReplacementCost(string product, string country){
+        
+        return [select Value__c
+                from   card_Replacement_Cost__mdt
+                where  Country__c=:country 
+                and    Product__c=:product
+                limit  1].value__c;
+    }
+    public static string queryOtherCountryAtmFee(string product, string country){
+        
+        return [select Value__c
+                from   otherCountryAtmFee__mdt
+                where  Country__c=:country 
+                and    Product__c=:product
+                limit  1].value__c;
+    }
+}
